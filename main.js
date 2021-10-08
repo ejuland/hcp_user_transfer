@@ -1,13 +1,22 @@
 const axios = require('axios')
-const TEMPLATE_USR_SRC = "https://jsonplaceholder.typicode.com/users";
-const HCP_DESTINATION = "https://dev.app.homecarepulse.com/Primary/?FlowId=7423bd80-cddb-11ea-9160-326dddd3e106&Action=api";
+const fs = require('fs');
 
+const TEMPLATE_USR_ENDPOINT = "https://jsonplaceholder.typicode.com/users";
+const HCP_USER_ENDPOINT = "https://dev.app.homecarepulse.com/Primary/?FlowId=7423bd80-cddb-11ea-9160-326dddd3e106&Action=api";
+
+
+// Looks for a file called hcp_credentials.json for authentication data
+const AUTH_FILE = fs.readFileSync("./hcp_credentials.json");
+const HCP_CREDENTIALS = JSON.parse(AUTH_FILE);
+const HCP_USER_ID = HCP_CREDENTIALS.userid;
+const HCP_PASSWORD = HCP_CREDENTIALS.password;
+
+/**
+ * Gets a template users list from the jsonplaceholder API
+ */
 function getTemplateUsers() {
-    return axios.get(TEMPLATE_USR_SRC);
+    return axios.get(TEMPLATE_USR_ENDPOINT).then(res => res.data);
 }
-
-const HCP_USER_ID = "";
-const HCP_PASSWORD = "";
 
 /**
  * Takes a list of HCP users and then sends it to the HCP server
@@ -20,10 +29,8 @@ function sendUsersToHCP(user_data) {
         "outputtype": "Json",
         "users": user_data
     };
-    console.log(JSON.stringify(body));
-    return axios.post(HCP_DESTINATION, JSON.stringify(body));
 
-    //return sendRequest(options, JSON.stringify(body));
+    return axios.post(HCP_USER_ENDPOINT, JSON.stringify(body));
 }
 
 /** 
@@ -38,7 +45,6 @@ function filterTitles(name) {
  */
 function formatUser(user) {
     let names = user.name.split(/\s/).filter(filterTitles);
-    console.log(user);
     return {
 
         "first_name": names.shift(),
@@ -77,7 +83,6 @@ async function handleHTTPError(res) {
 async function transferTemplateUsersToHCP() {
 
     getTemplateUsers()
-        .then(JSON.parse)
         .then(usersToHCPFormat)
         .then(sendUsersToHCP)
         .catch(handleHTTPError)
